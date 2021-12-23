@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashSet;
 import java.util.Properties;
@@ -44,6 +45,26 @@ public class JfrSchemaFactoryTest {
                 }
 
                 assertThat(tableNames).containsExactlyInAnyOrder("jdk.GarbageCollection", "jdk.ThreadSleep", "jfrunit.Sync");
+            }
+        }
+    }
+
+    @Test
+    public void canRunSimpleSelect() throws Exception {
+        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT "startTime", "time"
+                    FROM "jfr"."jdk.ThreadSleep"
+                    WHERE "time" = 1000
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+
+                assertThat(rs.getLong(1)).isEqualTo(5437836722L);
+                assertThat(rs.getLong(2)).isEqualTo(1000L);
+
+                assertThat(rs.next()).isFalse();
             }
         }
     }

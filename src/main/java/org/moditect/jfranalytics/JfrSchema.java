@@ -32,6 +32,7 @@ import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
+import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -75,7 +76,7 @@ public class JfrSchema implements Schema {
                         }
                     }
 
-                    tableTypes.put(event.getEventType().getName(), new JfrScannableTable(builder.build()));
+                    tableTypes.put(event.getEventType().getName(), new JfrScannableTable(jfrFile, event.getEventType(), builder.build()));
                 }
             });
 
@@ -130,7 +131,7 @@ public class JfrSchema implements Schema {
 
     @Override
     public Expression getExpression(@Nullable SchemaPlus parentSchema, String name) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return Schemas.subSchemaExpression(parentSchema, name, getClass());
     }
 
     @Override
@@ -140,7 +141,7 @@ public class JfrSchema implements Schema {
 
     @Override
     public Schema snapshot(SchemaVersion version) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return this;
     }
 
 }

@@ -15,6 +15,8 @@
  */
 package org.moditect.jfranalytics;
 
+import java.nio.file.Path;
+
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.type.RelDataType;
@@ -23,11 +25,17 @@ import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import jdk.jfr.EventType;
+
 public class JfrScannableTable extends AbstractTable implements ScannableTable {
 
+    private final Path jfrFile;
+    private final EventType eventType;
     private final RelDataType rowType;
 
-    public JfrScannableTable(RelDataType rowType) {
+    public JfrScannableTable(Path jfrFile, EventType eventType, RelDataType rowType) {
+        this.jfrFile = jfrFile;
+        this.eventType = eventType;
         this.rowType = rowType;
     }
 
@@ -38,6 +46,6 @@ public class JfrScannableTable extends AbstractTable implements ScannableTable {
 
     @Override
     public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return new JfrEnumerable(jfrFile, eventType, rowType);
     }
 }
