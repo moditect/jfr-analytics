@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerator;
@@ -43,13 +44,24 @@ public class JfrEnumerable extends AbstractEnumerable<Object[]> {
     @Override
     public Enumerator<Object[]> enumerator() {
         try (var es = EventStream.openFile(jfrFile)) {
+            int localOffset = TimeZone.getDefault().getOffset(System.currentTimeMillis());
             List<Object[]> results = new ArrayList<>();
 
             es.onEvent(eventType.getName(), event -> {
                 Object[] row = new Object[rowType.getFieldCount()];
+
                 int i = 0;
                 for (String field : rowType.getFieldNames()) {
-                    row[i] = event.getValue(field);
+                    // timestamps are adjusted by Calcite using local TZ offset; account for that
+                    if (field.equals("startTime")) {
+                        row[i] = event.getStartTime().toEpochMilli() + localOffset;
+                    }
+                    else if (field.equals("eventThread")) {
+                        row[i] = event.getThread().getJavaName();
+                    }
+                    else {
+                        row[i] = event.getValue(field);
+                    }
                     i++;
                 }
 

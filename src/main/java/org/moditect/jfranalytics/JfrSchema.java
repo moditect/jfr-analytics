@@ -17,6 +17,7 @@ package org.moditect.jfranalytics;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -62,9 +63,17 @@ public class JfrSchema implements Schema {
 
                         switch (field.getTypeName()) {
                             case "long":
-                                type = typeFactory.createJavaType(long.class);
+                                if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
+                                    type = typeFactory.createJavaType(Timestamp.class);
+                                }
+                                else {
+                                    type = typeFactory.createJavaType(long.class);
+                                }
                                 break;
                             case "java.lang.String":
+                                type = typeFactory.createJavaType(String.class);
+                                break;
+                            case "java.lang.Thread":
                                 type = typeFactory.createJavaType(String.class);
                                 break;
                             default:

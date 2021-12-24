@@ -23,6 +23,8 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -53,7 +55,7 @@ public class JfrSchemaFactoryTest {
     public void canRunSimpleSelect() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
             PreparedStatement statement = connection.prepareStatement("""
-                    SELECT "startTime", "time"
+                    SELECT "startTime", "time", "eventThread"
                     FROM "jfr"."jdk.ThreadSleep"
                     WHERE "time" = 1000
                     """);
@@ -61,8 +63,9 @@ public class JfrSchemaFactoryTest {
             try (ResultSet rs = statement.executeQuery()) {
                 assertThat(rs.next()).isTrue();
 
-                assertThat(rs.getLong(1)).isEqualTo(5437836722L);
+                assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-23T13:40:50.402000000Z").toInstant()));
                 assertThat(rs.getLong(2)).isEqualTo(1000L);
+                assertThat(rs.getString(3)).isEqualTo("main");
 
                 assertThat(rs.next()).isFalse();
             }
