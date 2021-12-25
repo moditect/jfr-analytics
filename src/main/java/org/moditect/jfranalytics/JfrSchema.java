@@ -16,6 +16,7 @@
 package org.moditect.jfranalytics;
 
 import java.io.IOException;
+import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.util.Collection;
@@ -42,6 +43,8 @@ import jdk.jfr.consumer.EventStream;
 
 public class JfrSchema implements Schema {
 
+    private static final System.Logger LOGGER = System.getLogger(JfrSchema.class.getName());
+
     private final Map<String, JfrScannableTable> tableTypes;
 
     public JfrSchema(Path jfrFile) {
@@ -62,6 +65,8 @@ public class JfrSchema implements Schema {
                         RelDataType type;
 
                         switch (field.getTypeName()) {
+                            case "int":
+                                type = typeFactory.createJavaType(int.class);
                             case "long":
                                 if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
                                     type = typeFactory.createJavaType(Timestamp.class);
@@ -77,6 +82,7 @@ public class JfrSchema implements Schema {
                                 type = typeFactory.createJavaType(String.class);
                                 break;
                             default:
+                                LOGGER.log(Level.WARNING, "Unknown attribute type: {0}; event type {1}", field.getTypeName(), event.getEventType().getName());
                                 type = null;
                         }
 

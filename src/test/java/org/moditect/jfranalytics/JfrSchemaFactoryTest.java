@@ -48,6 +48,58 @@ public class JfrSchemaFactoryTest {
 
                 assertThat(tableNames).containsExactlyInAnyOrder("jdk.GarbageCollection", "jdk.ThreadSleep", "jfrunit.Sync");
             }
+
+            try (ResultSet rs = md.getColumns(null, "jfr", "jdk.ThreadSleep", null)) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("startTime").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("TIMESTAMP(0)").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("duration").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("eventThread").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("time").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+
+                assertThat(rs.next()).isFalse();
+            }
+
+            try (ResultSet rs = md.getColumns(null, "jfr", "jdk.GarbageCollection", null)) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("startTime").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("TIMESTAMP(0)").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("duration").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("gcId").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("name").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("cause").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("sumOfPauses").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("longestPause").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+
+                assertThat(rs.next()).isFalse();
+            }
         }
     }
 
@@ -67,6 +119,23 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.getLong(2)).isEqualTo(1000L);
                 assertThat(rs.getString(3)).isEqualTo("main");
 
+                assertThat(rs.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    public void canRunAggregation() throws Exception {
+        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT count(*), sum("time")
+                    FROM "jfr"."jdk.ThreadSleep"
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getLong(1)).isEqualTo(51);
+                assertThat(rs.getLong(2)).isEqualTo(5850L);
                 assertThat(rs.next()).isFalse();
             }
         }
