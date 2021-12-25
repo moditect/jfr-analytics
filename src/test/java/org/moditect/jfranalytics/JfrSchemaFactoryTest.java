@@ -63,6 +63,10 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("stackTrace").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("time").describedAs("column name");
                 assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
 
@@ -107,7 +111,7 @@ public class JfrSchemaFactoryTest {
     public void canRunSimpleSelect() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
             PreparedStatement statement = connection.prepareStatement("""
-                    SELECT "startTime", "time", "eventThread"
+                    SELECT "startTime", "time", "eventThread", "stackTrace"
                     FROM "jfr"."jdk.ThreadSleep"
                     WHERE "time" = 1000
                     """);
@@ -118,7 +122,13 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-23T13:40:50.402000000Z").toInstant()));
                 assertThat(rs.getLong(2)).isEqualTo(1000L);
                 assertThat(rs.getString(3)).isEqualTo("main");
-
+                assertThat(rs.getString(4)).startsWith("""
+                        {
+                          truncated = true
+                          frames = [
+                            java.lang.Thread.sleep(long)
+                             org.moditect.jfrunit.demos.todo.HelloJfrUnitTest.basicTest() line: 24
+                        """);
                 assertThat(rs.next()).isFalse();
             }
         }

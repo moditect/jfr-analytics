@@ -59,6 +59,9 @@ public class JfrEnumerable extends AbstractEnumerable<Object[]> {
                     else if (field.equals("eventThread")) {
                         row[i] = event.getThread().getJavaName();
                     }
+                    else if (field.equals("stackTrace")) {
+                        row[i] = event.getStackTrace().toString().replaceAll(",     ", System.lineSeparator() + "     ");
+                    }
                     else {
                         row[i] = event.getValue(field);
                     }

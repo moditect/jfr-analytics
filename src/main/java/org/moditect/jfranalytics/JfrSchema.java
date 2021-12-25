@@ -81,6 +81,9 @@ public class JfrSchema implements Schema {
                             case "java.lang.Thread":
                                 type = typeFactory.createJavaType(String.class);
                                 break;
+                            case "jdk.types.StackTrace":
+                                type = typeFactory.createJavaType(String.class);
+                                break;
                             default:
                                 LOGGER.log(Level.WARNING, "Unknown attribute type: {0}; event type {1}", field.getTypeName(), event.getEventType().getName());
                                 type = null;
