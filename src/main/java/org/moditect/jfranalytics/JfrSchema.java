@@ -106,6 +106,9 @@ public class JfrSchema implements Schema {
                     type = typeFactory.createJavaType(long.class);
                 }
                 break;
+            case "java.lang.Class":
+                type = typeFactory.createJavaType(String.class);
+                break;
             case "java.lang.String":
                 type = typeFactory.createJavaType(String.class);
                 break;
@@ -134,7 +137,7 @@ public class JfrSchema implements Schema {
             return event -> event.getThread().getJavaName();
         }
         else if (field.getName().equals("stackTrace")) {
-            return event -> event.getStackTrace().toString().replaceAll(",     ", System.lineSeparator() + "     ");
+            return event -> event.getStackTrace() != null ? event.getStackTrace().toString().replaceAll(",     ", System.lineSeparator() + "     ") : null;
         }
         else {
             if (field.getAnnotation(Timespan.class) != null) {
@@ -144,7 +147,12 @@ public class JfrSchema implements Schema {
                 return event -> event.getLong(field.getName());
             }
             else {
-                return event -> event.getValue(field.getName());
+                if (field.getTypeName().equals("java.lang.Class")) {
+                    return event -> event.getClass(field.getName()).getName();
+                }
+                else {
+                    return event -> event.getValue(field.getName());
+                }
             }
         }
     }
