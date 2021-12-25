@@ -19,11 +19,14 @@ import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -36,14 +39,18 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import jdk.jfr.EventType;
+import jdk.jfr.Timespan;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.EventStream;
 
 public class JfrSchema implements Schema {
 
     private static final System.Logger LOGGER = System.getLogger(JfrSchema.class.getName());
+    private static final int LOCAL_OFFSET = TimeZone.getDefault().getOffset(System.currentTimeMillis());
 
     private final Map<String, JfrScannableTable> tableTypes;
 
@@ -60,41 +67,20 @@ public class JfrSchema implements Schema {
             es.onEvent(event -> {
                 if (!tableTypes.containsKey(event.getEventType().getName())) {
                     RelDataTypeFactory.Builder builder = new RelDataTypeFactory.Builder(typeFactory);
+                    List<AttributeValueConverter> converters = new ArrayList<>();
 
                     for (ValueDescriptor field : event.getEventType().getFields()) {
-                        RelDataType type;
-
-                        switch (field.getTypeName()) {
-                            case "int":
-                                type = typeFactory.createJavaType(int.class);
-                            case "long":
-                                if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
-                                    type = typeFactory.createJavaType(Timestamp.class);
-                                }
-                                else {
-                                    type = typeFactory.createJavaType(long.class);
-                                }
-                                break;
-                            case "java.lang.String":
-                                type = typeFactory.createJavaType(String.class);
-                                break;
-                            case "java.lang.Thread":
-                                type = typeFactory.createJavaType(String.class);
-                                break;
-                            case "jdk.types.StackTrace":
-                                type = typeFactory.createJavaType(String.class);
-                                break;
-                            default:
-                                LOGGER.log(Level.WARNING, "Unknown attribute type: {0}; event type {1}", field.getTypeName(), event.getEventType().getName());
-                                type = null;
+                        RelDataType type = getRelDataType(event.getEventType(), field, typeFactory);
+                        if (type == null) {
+                            continue;
                         }
 
-                        if (type != null) {
-                            builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
-                        }
+                        builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
+                        converters.add(getConverter(field, type));
                     }
 
-                    tableTypes.put(event.getEventType().getName(), new JfrScannableTable(jfrFile, event.getEventType(), builder.build()));
+                    tableTypes.put(event.getEventType().getName(),
+                            new JfrScannableTable(jfrFile, event.getEventType(), builder.build(), converters.toArray(new AttributeValueConverter[0])));
                 }
             });
 
@@ -104,6 +90,62 @@ public class JfrSchema implements Schema {
         }
         catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static RelDataType getRelDataType(EventType eventType, ValueDescriptor field, RelDataTypeFactory typeFactory) {
+        RelDataType type;
+        switch (field.getTypeName()) {
+            case "int":
+                type = typeFactory.createJavaType(int.class);
+            case "long":
+                if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
+                    type = typeFactory.createJavaType(Timestamp.class);
+                }
+                else {
+                    type = typeFactory.createJavaType(long.class);
+                }
+                break;
+            case "java.lang.String":
+                type = typeFactory.createJavaType(String.class);
+                break;
+            case "java.lang.Thread":
+                type = typeFactory.createJavaType(String.class);
+                break;
+            case "jdk.types.StackTrace":
+                type = typeFactory.createJavaType(String.class);
+                break;
+            default:
+                LOGGER.log(Level.WARNING, "Unknown attribute type: {0}; event type {1}", field.getTypeName(), eventType.getName());
+                type = null;
+        }
+        return type;
+    }
+
+    private static AttributeValueConverter getConverter(ValueDescriptor field, RelDataType type) {
+        // timestamps are adjusted by Calcite using local TZ offset; account for that
+        if (field.getName().equals("startTime")) {
+            return event -> event.getStartTime().toEpochMilli() + LOCAL_OFFSET;
+        }
+        else if (field.getName().equals("duration")) {
+            return event -> event.getDuration().toNanos();
+        }
+        else if (field.getName().equals("eventThread")) {
+            return event -> event.getThread().getJavaName();
+        }
+        else if (field.getName().equals("stackTrace")) {
+            return event -> event.getStackTrace().toString().replaceAll(",     ", System.lineSeparator() + "     ");
+        }
+        else {
+            if (field.getAnnotation(Timespan.class) != null) {
+                return event -> event.getDuration(field.getName()).toNanos();
+            }
+            else if (type != null && type.getSqlTypeName() == SqlTypeName.BIGINT) {
+                return event -> event.getLong(field.getName());
+            }
+            else {
+                return event -> event.getValue(field.getName());
+            }
         }
     }
 
@@ -161,5 +203,4 @@ public class JfrSchema implements Schema {
     public Schema snapshot(SchemaVersion version) {
         return this;
     }
-
 }

@@ -108,19 +108,19 @@ public class JfrSchemaFactoryTest {
     }
 
     @Test
-    public void canRunSimpleSelect() throws Exception {
+    public void canRunSimpleSelectFromThreadSleep() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "time", "eventThread", "stackTrace"
                     FROM "jfr"."jdk.ThreadSleep"
-                    WHERE "time" = 1000
+                    WHERE "time" = 1000000000
                     """);
 
             try (ResultSet rs = statement.executeQuery()) {
                 assertThat(rs.next()).isTrue();
 
                 assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-23T13:40:50.402000000Z").toInstant()));
-                assertThat(rs.getLong(2)).isEqualTo(1000L);
+                assertThat(rs.getLong(2)).isEqualTo(1_000_000_000L);
                 assertThat(rs.getString(3)).isEqualTo("main");
                 assertThat(rs.getString(4)).startsWith("""
                         {
@@ -129,6 +129,29 @@ public class JfrSchemaFactoryTest {
                             java.lang.Thread.sleep(long)
                              org.moditect.jfrunit.demos.todo.HelloJfrUnitTest.basicTest() line: 24
                         """);
+                assertThat(rs.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    public void canRunSimpleSelectFromGarbageCollection() throws Exception {
+        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT "startTime", "duration", "gcId", "name", "cause", "sumOfPauses", "longestPause"
+                    FROM "jfr"."jdk.GarbageCollection"
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+
+                assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-23T13:40:50.384000000Z").toInstant()));
+                assertThat(rs.getLong(2)).isEqualTo(17717731L);
+                assertThat(rs.getInt(3)).isEqualTo(2);
+                assertThat(rs.getString(4)).isEqualTo("G1Full");
+                assertThat(rs.getString(5)).isEqualTo("System.gc()");
+                assertThat(rs.getLong(6)).isEqualTo(17717730L);
+                assertThat(rs.getLong(7)).isEqualTo(17717730L);
                 assertThat(rs.next()).isFalse();
             }
         }
@@ -145,7 +168,7 @@ public class JfrSchemaFactoryTest {
             try (ResultSet rs = statement.executeQuery()) {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getLong(1)).isEqualTo(51);
-                assertThat(rs.getLong(2)).isEqualTo(5850L);
+                assertThat(rs.getLong(2)).isEqualTo(5_850_000_000L);
                 assertThat(rs.next()).isFalse();
             }
         }

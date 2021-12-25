@@ -32,11 +32,13 @@ public class JfrScannableTable extends AbstractTable implements ScannableTable {
     private final Path jfrFile;
     private final EventType eventType;
     private final RelDataType rowType;
+    private final AttributeValueConverter[] converters;
 
-    public JfrScannableTable(Path jfrFile, EventType eventType, RelDataType rowType) {
+    public JfrScannableTable(Path jfrFile, EventType eventType, RelDataType rowType, AttributeValueConverter[] converters) {
         this.jfrFile = jfrFile;
         this.eventType = eventType;
         this.rowType = rowType;
+        this.converters = converters;
     }
 
     @Override
@@ -46,6 +48,6 @@ public class JfrScannableTable extends AbstractTable implements ScannableTable {
 
     @Override
     public Enumerable<@Nullable Object[]> scan(DataContext root) {
-        return new JfrEnumerable(jfrFile, eventType, rowType);
+        return new JfrEnumerable(jfrFile, eventType, converters);
     }
 }
