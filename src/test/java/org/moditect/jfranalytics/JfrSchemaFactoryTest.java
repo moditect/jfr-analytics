@@ -23,6 +23,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.HashSet;
@@ -37,7 +38,7 @@ public class JfrSchemaFactoryTest {
 
     @Test
     public void canRetrieveTables() throws Exception {
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+        try (Connection connection = getConnection("basic.jfr")) {
             DatabaseMetaData md = connection.getMetaData();
             try (ResultSet rs = md.getTables(null, "jfr", "%", null)) {
                 Set<String> tableNames = new HashSet<>();
@@ -109,7 +110,7 @@ public class JfrSchemaFactoryTest {
 
     @Test
     public void canRunSimpleSelectFromThreadSleep() throws Exception {
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+        try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "time", "eventThread", "stackTrace"
                     FROM "jfr"."jdk.ThreadSleep"
@@ -136,7 +137,7 @@ public class JfrSchemaFactoryTest {
 
     @Test
     public void canRunSimpleSelectFromGarbageCollection() throws Exception {
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+        try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "duration", "gcId", "name", "cause", "sumOfPauses", "longestPause"
                     FROM "jfr"."jdk.GarbageCollection"
@@ -159,7 +160,7 @@ public class JfrSchemaFactoryTest {
 
     @Test
     public void canRunSimpleSelectFromClassLoad() throws Exception {
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
+        try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "loadedClass", "initiatingClassLoader", "definingClassLoader"
                     FROM "jfr"."jdk.ClassLoad"
@@ -198,7 +199,7 @@ public class JfrSchemaFactoryTest {
 
     @Test
     public void canUseGetClassNameFunction() throws Exception {
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
+        try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT CLASS_NAME("loadedClass") as className
                     FROM "jfr"."jdk.ClassLoad"
@@ -216,7 +217,7 @@ public class JfrSchemaFactoryTest {
 
     @Test
     public void canRunAggregations() throws Exception {
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
+        try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT count(*), sum("time")
                     FROM "jfr"."jdk.ThreadSleep"
@@ -230,7 +231,7 @@ public class JfrSchemaFactoryTest {
             }
         }
 
-        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
+        try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "definingClassLoader", count(*) as loadedClasses
                     FROM "jfr"."jdk.ClassLoad"
@@ -264,12 +265,13 @@ public class JfrSchemaFactoryTest {
         }
     }
 
-    private Properties getConnectionProperties(String jfrFileName) {
+    private Connection getConnection(String jfrFileName) throws SQLException {
         Path jfrFile = getTestResource(jfrFileName);
+
         Properties properties = new Properties();
         properties.put("model", JfrSchemaFactory.getInlineModel(jfrFile));
 
-        return properties;
+        return DriverManager.getConnection("jdbc:calcite:", properties);
     }
 
     private Path getTestResource(String resource) {
