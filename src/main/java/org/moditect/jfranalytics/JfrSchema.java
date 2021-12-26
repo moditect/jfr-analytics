@@ -47,6 +47,7 @@ import jdk.jfr.Timespan;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedClass;
+import jdk.jfr.consumer.RecordedClassLoader;
 
 public class JfrSchema implements Schema {
 
@@ -121,6 +122,9 @@ public class JfrSchema implements Schema {
             case "java.lang.Thread":
                 type = typeFactory.createJavaType(String.class);
                 break;
+            case "jdk.types.ClassLoader":
+                type = typeFactory.createJavaType(String.class);
+                break;
             case "jdk.types.StackTrace":
                 type = typeFactory.createJavaType(String.class);
                 break;
@@ -132,6 +136,8 @@ public class JfrSchema implements Schema {
     }
 
     private static AttributeValueConverter getConverter(ValueDescriptor field, RelDataType type) {
+        // 1. common attributes
+
         // timestamps are adjusted by Calcite using local TZ offset; account for that
         if (field.getName().equals("startTime")) {
             return event -> event.getStartTime().toEpochMilli() + LOCAL_OFFSET;
@@ -145,21 +151,39 @@ public class JfrSchema implements Schema {
         else if (field.getName().equals("stackTrace")) {
             return event -> event.getStackTrace() != null ? event.getStackTrace().toString().replaceAll(",     ", System.lineSeparator() + "     ") : null;
         }
-        else {
-            if (field.getAnnotation(Timespan.class) != null) {
-                return event -> event.getDuration(field.getName()).toNanos();
-            }
-            else if (type != null && type.getSqlTypeName() == SqlTypeName.BIGINT) {
-                return event -> event.getLong(field.getName());
-            }
-            else {
-                if (field.getTypeName().equals("java.lang.Class")) {
-                    return event -> event.getClass(field.getName());
+
+        // 2. special value types
+        else if (field.getTypeName().equals("java.lang.Class")) {
+            return event -> event.getClass(field.getName());
+        }
+        else if (field.getTypeName().equals("jdk.types.ClassLoader")) {
+            return event -> {
+                RecordedClassLoader recordedClassLoader = (RecordedClassLoader) event.getValue(field.getName());
+
+                if (recordedClassLoader == null) {
+                    return null;
+                }
+                else if (recordedClassLoader.getName() != null) {
+                    return recordedClassLoader.getName();
                 }
                 else {
-                    return event -> event.getValue(field.getName());
+                    RecordedClass classLoaderType = recordedClassLoader.getType();
+                    return classLoaderType != null ? classLoaderType.getName() : null;
                 }
-            }
+            };
+        }
+
+        // 3. further special cases
+        else if (field.getAnnotation(Timespan.class) != null) {
+            return event -> event.getDuration(field.getName()).toNanos();
+        }
+        else if (type != null && type.getSqlTypeName() == SqlTypeName.BIGINT) {
+            return event -> event.getLong(field.getName());
+        }
+
+        // 4. default pass-through
+        else {
+            return event -> event.getValue(field.getName());
         }
     }
 

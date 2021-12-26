@@ -161,7 +161,7 @@ public class JfrSchemaFactoryTest {
     public void canRunSimpleSelectFromClassLoad() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
             PreparedStatement statement = connection.prepareStatement("""
-                    SELECT "startTime", "loadedClass"
+                    SELECT "startTime", "loadedClass", "initiatingClassLoader", "definingClassLoader"
                     FROM "jfr"."jdk.ClassLoad"
                     ORDER by "startTime"
                     LIMIT 1
@@ -189,7 +189,8 @@ public class JfrSchemaFactoryTest {
                           hidden = false
                         }
                         """);
-
+                assertThat(rs.getString(3)).isEqualTo("platform");
+                assertThat(rs.getString(4)).isEqualTo("bootstrap");
                 assertThat(rs.next()).isFalse();
             }
         }
@@ -214,7 +215,7 @@ public class JfrSchemaFactoryTest {
     }
 
     @Test
-    public void canRunAggregation() throws Exception {
+    public void canRunAggregations() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT count(*), sum("time")
@@ -225,6 +226,39 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getLong(1)).isEqualTo(51);
                 assertThat(rs.getLong(2)).isEqualTo(5_850_000_000L);
+                assertThat(rs.next()).isFalse();
+            }
+        }
+
+        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT "definingClassLoader", count(*) as loadedClasses
+                    FROM "jfr"."jdk.ClassLoad"
+                    GROUP BY "definingClassLoader"
+                    ORDER BY loadedClasses DESC
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("io.quarkus.bootstrap.classloading.QuarkusClassLoader");
+                assertThat(rs.getLong(2)).isEqualTo(728);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("bootstrap");
+                assertThat(rs.getLong(2)).isEqualTo(625);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("platform");
+                assertThat(rs.getLong(2)).isEqualTo(388);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isNull();
+                assertThat(rs.getLong(2)).isEqualTo(41);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("app");
+                assertThat(rs.getLong(2)).isEqualTo(1);
+
                 assertThat(rs.next()).isFalse();
             }
         }
