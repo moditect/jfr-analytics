@@ -46,6 +46,7 @@ import jdk.jfr.EventType;
 import jdk.jfr.Timespan;
 import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.EventStream;
+import jdk.jfr.consumer.RecordedClass;
 
 public class JfrSchema implements Schema {
 
@@ -75,7 +76,12 @@ public class JfrSchema implements Schema {
                             continue;
                         }
 
+                        // if (type.getSqlTypeName().toString().equals("ROW")) {
+                        // builder.add(field.getName(), type).nullable(true);
+                        // }
+
                         builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
+
                         converters.add(getConverter(field, type));
                     }
 
@@ -107,7 +113,7 @@ public class JfrSchema implements Schema {
                 }
                 break;
             case "java.lang.Class":
-                type = typeFactory.createJavaType(String.class);
+                type = typeFactory.createJavaType(RecordedClass.class);
                 break;
             case "java.lang.String":
                 type = typeFactory.createJavaType(String.class);
@@ -119,7 +125,7 @@ public class JfrSchema implements Schema {
                 type = typeFactory.createJavaType(String.class);
                 break;
             default:
-                LOGGER.log(Level.WARNING, "Unknown attribute type: {0}; event type {1}", field.getTypeName(), eventType.getName());
+                LOGGER.log(Level.WARNING, "Unknown type of attribute {0}::{1}: {2}", eventType.getName(), field.getName(), field.getTypeName());
                 type = null;
         }
         return type;
@@ -148,7 +154,7 @@ public class JfrSchema implements Schema {
             }
             else {
                 if (field.getTypeName().equals("java.lang.Class")) {
-                    return event -> event.getClass(field.getName()).getName();
+                    return event -> event.getClass(field.getName());
                 }
                 else {
                     return event -> event.getValue(field.getName());
@@ -179,12 +185,16 @@ public class JfrSchema implements Schema {
 
     @Override
     public Collection<Function> getFunctions(String name) {
+        if (name.equals("CLASS_NAME")) {
+            return Collections.singleton(GetClassNameFunction.INSTANCE);
+        }
+
         return Collections.emptySet();
     }
 
     @Override
     public Set<String> getFunctionNames() {
-        return Collections.emptySet();
+        return Set.of("CLASS_NAME");
     }
 
     @Override

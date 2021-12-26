@@ -158,6 +158,62 @@ public class JfrSchemaFactoryTest {
     }
 
     @Test
+    public void canRunSimpleSelectFromClassLoad() throws Exception {
+        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT "startTime", "loadedClass"
+                    FROM "jfr"."jdk.ClassLoad"
+                    ORDER by "startTime"
+                    LIMIT 1
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+
+                assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-26T17:32:45.428000000+01:00").toInstant()));
+                assertThat(rs.getString(2)).isEqualTo("""
+                        {
+                          classLoader = null
+                          name = "java/lang/Throwable"
+                          package = {
+                            name = "java/lang"
+                            module = {
+                              name = "java.base"
+                              version = "17"
+                              location = "jrt:/java.base"
+                              classLoader = null
+                            }
+                            exported = true
+                          }
+                          modifiers = 33
+                          hidden = false
+                        }
+                        """);
+
+                assertThat(rs.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    public void canUseGetClassNameFunction() throws Exception {
+        try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("class-loading.jfr"))) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT CLASS_NAME("loadedClass") as className
+                    FROM "jfr"."jdk.ClassLoad"
+                    ORDER by "startTime"
+                    LIMIT 1
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("java.lang.Throwable");
+                assertThat(rs.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
     public void canRunAggregation() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:calcite:", getConnectionProperties("basic.jfr"))) {
             PreparedStatement statement = connection.prepareStatement("""
