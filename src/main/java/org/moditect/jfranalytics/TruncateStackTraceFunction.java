@@ -32,6 +32,9 @@ public class TruncateStackTraceFunction {
     public static final ScalarFunction INSTANCE = ScalarFunctionImpl.create(TruncateStackTraceFunction.class, "eval");
 
     public String eval(Object recordedStackTrace, int depth) {
+        if (recordedStackTrace == null) {
+            return null;
+        }
         if (!(recordedStackTrace instanceof RecordedStackTrace)) {
             throw new IllegalArgumentException("Unexpected value type: " + recordedStackTrace);
         }

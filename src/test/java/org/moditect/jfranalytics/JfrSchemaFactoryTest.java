@@ -268,6 +268,26 @@ public class JfrSchemaFactoryTest {
         }
     }
 
+    @Test
+    public void canRunSimpleSelectFromObjectAllocation() throws Exception {
+        try (Connection connection = getConnection("object-allocations.jfr")) {
+            PreparedStatement statement = connection.prepareStatement("""
+                      SELECT TRUNCATE_STACKTRACE("stackTrace", 40), SUM("weight")
+                      FROM "jfr"."jdk.ObjectAllocationSample"
+                      WHERE "startTime" > (SELECT "startTime" FROM "jfr"."jfrunit.Reset")
+                      GROUP BY TRUNCATE_STACKTRACE("stackTrace", 40)
+                      ORDER BY SUM("weight") DESC
+                      LIMIT 10
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).startsWith("java.io.BufferedReader.<init>(Reader, int):106");
+                assertThat(rs.getLong(2)).isEqualTo(311214384);
+            }
+        }
+    }
+
     private Connection getConnection(String jfrFileName) throws SQLException {
         Path jfrFile = getTestResource(jfrFileName);
 

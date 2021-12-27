@@ -45,9 +45,9 @@ public class JfrSchemaFactory implements SchemaFactory {
 
     public static String getInlineModel(Path jfrFile) {
         return INLINE_MODEL.formatted(jfrFile
-            .toAbsolutePath()
-            .toString()
-            .replace("\\", "\\\\"));
+                .toAbsolutePath()
+                .toString()
+                .replace("\\", "\\\\"));
     }
 
     @Override
