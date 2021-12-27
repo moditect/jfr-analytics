@@ -26,9 +26,9 @@ public class GetClassNameFunction {
 
     public String eval(Object recordedClass) {
         if (!(recordedClass instanceof RecordedClass)) {
-            System.out.println(recordedClass);
-            throw new RuntimeException("BOOM");
+            throw new IllegalArgumentException("Unexpected value type: " + recordedClass);
         }
+
         return ((RecordedClass) recordedClass).getName();
     }
 }

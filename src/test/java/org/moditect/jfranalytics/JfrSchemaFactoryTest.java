@@ -65,7 +65,7 @@ public class JfrSchemaFactoryTest {
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("stackTrace").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+                assertThat(rs.getString(6)).isEqualTo("OTHER").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("time").describedAs("column name");
@@ -112,7 +112,7 @@ public class JfrSchemaFactoryTest {
     public void canRunSimpleSelectFromThreadSleep() throws Exception {
         try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
-                    SELECT "startTime", "time", "eventThread", "stackTrace"
+                    SELECT "startTime", "time", "eventThread", TRUNCATE_STACKTRACE("stackTrace", 7)
                     FROM "jfr"."jdk.ThreadSleep"
                     WHERE "time" = 1000000000
                     """);
@@ -123,12 +123,15 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-23T13:40:50.402000000Z").toInstant()));
                 assertThat(rs.getLong(2)).isEqualTo(1_000_000_000L);
                 assertThat(rs.getString(3)).isEqualTo("main");
-                assertThat(rs.getString(4)).startsWith("""
-                        {
-                          truncated = true
-                          frames = [
-                            java.lang.Thread.sleep(long)
-                             org.moditect.jfrunit.demos.todo.HelloJfrUnitTest.basicTest() line: 24
+
+                assertThat(rs.getString(4)).isEqualTo("""
+                        java.lang.Thread.sleep(long)
+                        org.moditect.jfrunit.demos.todo.HelloJfrUnitTest.basicTest():24
+                        jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Method, Object, Object[])
+                        jdk.internal.reflect.NativeMethodAccessorImpl.invoke(Object, Object[]):77
+                        jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(Object, Object[]):43
+                        java.lang.reflect.Method.invoke(Object, Object[]):568
+                        org.junit.platform.commons.util.ReflectionUtils.invokeMethod(Method, Object, Object[]):688
                         """);
                 assertThat(rs.next()).isFalse();
             }

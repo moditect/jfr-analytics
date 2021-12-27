@@ -48,6 +48,7 @@ import jdk.jfr.ValueDescriptor;
 import jdk.jfr.consumer.EventStream;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedClassLoader;
+import jdk.jfr.consumer.RecordedStackTrace;
 
 public class JfrSchema implements Schema {
 
@@ -126,7 +127,7 @@ public class JfrSchema implements Schema {
                 type = typeFactory.createJavaType(String.class);
                 break;
             case "jdk.types.StackTrace":
-                type = typeFactory.createJavaType(String.class);
+                type = typeFactory.createJavaType(RecordedStackTrace.class);
                 break;
             default:
                 LOGGER.log(Level.WARNING, "Unknown type of attribute {0}::{1}: {2}", eventType.getName(), field.getName(), field.getTypeName());
@@ -149,7 +150,7 @@ public class JfrSchema implements Schema {
             return event -> event.getThread().getJavaName();
         }
         else if (field.getName().equals("stackTrace")) {
-            return event -> event.getStackTrace() != null ? event.getStackTrace().toString().replaceAll(",     ", System.lineSeparator() + "     ") : null;
+            return event -> event.getStackTrace();
         }
 
         // 2. special value types
@@ -212,13 +213,16 @@ public class JfrSchema implements Schema {
         if (name.equals("CLASS_NAME")) {
             return Collections.singleton(GetClassNameFunction.INSTANCE);
         }
+        else if (name.equals("TRUNCATE_STACKTRACE")) {
+            return Collections.singleton(TruncateStackTraceFunction.INSTANCE);
+        }
 
         return Collections.emptySet();
     }
 
     @Override
     public Set<String> getFunctionNames() {
-        return Set.of("CLASS_NAME");
+        return Set.of("CLASS_NAME", "TRUNCATE_STACKTRACE");
     }
 
     @Override
