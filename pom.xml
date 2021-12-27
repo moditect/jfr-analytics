@@ -31,8 +31,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
-  <name>My OSS Project</name>
-  <description>My Latest OSS Project</description>
+  <name>JFR Analytics</name>
+  <description>An exploration for running analytics on JDK Flight Recorder data</description>
   <inceptionYear>2021</inceptionYear>
   <url>tbd.</url>
 
