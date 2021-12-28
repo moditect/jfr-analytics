@@ -47,7 +47,7 @@ public class JfrSchemaFactoryTest {
                     tableNames.add(rs.getString(3));
                 }
 
-                assertThat(tableNames).containsExactlyInAnyOrder("jdk.GarbageCollection", "jdk.ThreadSleep", "jfrunit.Sync");
+                assertThat(tableNames).contains("jdk.GarbageCollection", "jdk.ThreadSleep", "jfrunit.Sync");
             }
 
             try (ResultSet rs = md.getColumns(null, "jfr", "jdk.ThreadSleep", null)) {

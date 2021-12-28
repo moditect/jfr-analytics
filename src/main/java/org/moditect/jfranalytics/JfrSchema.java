@@ -67,28 +67,30 @@ public class JfrSchema implements Schema {
             RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
             Map<String, JfrScannableTable> tableTypes = new HashMap<>();
 
-            es.onEvent(event -> {
-                if (!tableTypes.containsKey(event.getEventType().getName())) {
-                    RelDataTypeFactory.Builder builder = new RelDataTypeFactory.Builder(typeFactory);
-                    List<AttributeValueConverter> converters = new ArrayList<>();
+            es.onMetadata(event -> {
+                for (EventType eventType : event.getEventTypes()) {
+                    if (!tableTypes.containsKey(eventType.getName())) {
+                        RelDataTypeFactory.Builder builder = new RelDataTypeFactory.Builder(typeFactory);
+                        List<AttributeValueConverter> converters = new ArrayList<>();
 
-                    for (ValueDescriptor field : event.getEventType().getFields()) {
-                        RelDataType type = getRelDataType(event.getEventType(), field, typeFactory);
-                        if (type == null) {
-                            continue;
+                        for (ValueDescriptor field : eventType.getFields()) {
+                            RelDataType type = getRelDataType(eventType, field, typeFactory);
+                            if (type == null) {
+                                continue;
+                            }
+
+                            // if (type.getSqlTypeName().toString().equals("ROW")) {
+                            // builder.add(field.getName(), type).nullable(true);
+                            // }
+
+                            builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
+
+                            converters.add(getConverter(field, type));
                         }
 
-                        // if (type.getSqlTypeName().toString().equals("ROW")) {
-                        // builder.add(field.getName(), type).nullable(true);
-                        // }
-
-                        builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
-
-                        converters.add(getConverter(field, type));
+                        tableTypes.put(eventType.getName(),
+                                new JfrScannableTable(jfrFile, eventType, builder.build(), converters.toArray(new AttributeValueConverter[0])));
                     }
-
-                    tableTypes.put(event.getEventType().getName(),
-                            new JfrScannableTable(jfrFile, event.getEventType(), builder.build(), converters.toArray(new AttributeValueConverter[0])));
                 }
             });
 
