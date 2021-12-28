@@ -73,8 +73,21 @@ public class JfrSchemaFactoryTest {
 
                 assertThat(rs.next()).isFalse();
             }
+        }
 
-            try (ResultSet rs = md.getColumns(null, "jfr", "jdk.GarbageCollection", null)) {
+        try (Connection connection = getConnection("data-types.jfr")) {
+            DatabaseMetaData md = connection.getMetaData();
+            try (ResultSet rs = md.getTables(null, "jfr", "%", null)) {
+                Set<String> tableNames = new HashSet<>();
+
+                while (rs.next()) {
+                    tableNames.add(rs.getString(3));
+                }
+
+                assertThat(tableNames).contains("test.DataTypes");
+            }
+
+            try (ResultSet rs = md.getColumns(null, "jfr", "test.DataTypes", null)) {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("startTime").describedAs("column name");
                 assertThat(rs.getString(6)).isEqualTo("TIMESTAMP(0)").describedAs("type name");
@@ -84,24 +97,74 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(4)).isEqualTo("gcId").describedAs("column name");
+                assertThat(rs.getString(4)).isEqualTo("eventThread").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("stackTrace").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("OTHER").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someBoolean").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("BOOLEAN").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someChar").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("CHAR(1)").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someByte").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("TINYINT").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someShort").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("SMALLINT").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someInt").describedAs("column name");
                 assertThat(rs.getString(6)).isEqualTo("INTEGER").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(4)).isEqualTo("name").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
-
-                assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(4)).isEqualTo("cause").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
-
-                assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(4)).isEqualTo("sumOfPauses").describedAs("column name");
+                assertThat(rs.getString(4)).isEqualTo("someLong").describedAs("column name");
                 assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(4)).isEqualTo("longestPause").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+                assertThat(rs.getString(4)).isEqualTo("someFloat").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("REAL").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someDouble").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("DOUBLE").describedAs("type name");
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(4)).isEqualTo("someString").describedAs("column name");
+                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+
+                assertThat(rs.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
+    public void canSelectDifferentDataTypes() throws Exception {
+        try (Connection connection = getConnection("data-types.jfr")) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT * FROM "jfr"."test.DataTypes"
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+
+                assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-28T17:10:09.724000000+01:00").toInstant()));
+                assertThat(rs.getBoolean(5)).isTrue();
+                assertThat(rs.getString(6)).isEqualTo("X");
+                assertThat(rs.getByte(7)).isEqualTo(Byte.MAX_VALUE);
+                assertThat(rs.getShort(8)).isEqualTo(Short.MAX_VALUE);
+                assertThat(rs.getInt(9)).isEqualTo(Integer.MAX_VALUE);
+                assertThat(rs.getLong(10)).isEqualTo(Long.MAX_VALUE);
+                assertThat(rs.getFloat(11)).isEqualTo(Float.MAX_VALUE);
+                assertThat(rs.getDouble(12)).isEqualTo(Double.MAX_VALUE);
+                assertThat(rs.getString(13)).isEqualTo("SQL rockz");
 
                 assertThat(rs.next()).isFalse();
             }

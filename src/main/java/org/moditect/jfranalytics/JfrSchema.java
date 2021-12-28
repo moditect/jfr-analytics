@@ -62,7 +62,6 @@ public class JfrSchema implements Schema {
     }
 
     private static Map<String, JfrScannableTable> getTableTypes(Path jfrFile) {
-
         try (var es = EventStream.openFile(jfrFile)) {
             RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
             Map<String, JfrScannableTable> tableTypes = new HashMap<>();
@@ -106,11 +105,20 @@ public class JfrSchema implements Schema {
     private static RelDataType getRelDataType(EventType eventType, ValueDescriptor field, RelDataTypeFactory typeFactory) {
         RelDataType type;
         switch (field.getTypeName()) {
-            case "int":
-                type = typeFactory.createJavaType(int.class);
-                break;
             case "boolean":
                 type = typeFactory.createJavaType(boolean.class);
+                break;
+            case "char":
+                type = typeFactory.createJavaType(char.class);
+                break;
+            case "byte":
+                type = typeFactory.createJavaType(byte.class);
+                break;
+            case "short":
+                type = typeFactory.createJavaType(short.class);
+                break;
+            case "int":
+                type = typeFactory.createJavaType(int.class);
                 break;
             case "long":
                 if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
@@ -119,6 +127,12 @@ public class JfrSchema implements Schema {
                 else {
                     type = typeFactory.createJavaType(long.class);
                 }
+                break;
+            case "float":
+                type = typeFactory.createJavaType(float.class);
+                break;
+            case "double":
+                type = typeFactory.createJavaType(double.class);
                 break;
             case "java.lang.Class":
                 type = typeFactory.createJavaType(RecordedClass.class);
