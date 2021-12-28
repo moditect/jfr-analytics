@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -108,6 +109,9 @@ public class JfrSchema implements Schema {
             case "int":
                 type = typeFactory.createJavaType(int.class);
                 break;
+            case "boolean":
+                type = typeFactory.createJavaType(boolean.class);
+                break;
             case "long":
                 if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
                     type = typeFactory.createJavaType(Timestamp.class);
@@ -178,7 +182,12 @@ public class JfrSchema implements Schema {
 
         // 3. further special cases
         else if (field.getAnnotation(Timespan.class) != null) {
-            return event -> event.getDuration(field.getName()).toNanos();
+            return event -> {
+                Duration duration = event.getDuration(field.getName());
+                // Long.MIN_VALUE is used as a sentinel value for absent values e.g. for jdk.GCConfiguration.pauseTarget
+                // TODO: handle nanos value overflow
+                return duration.getSeconds() == Long.MIN_VALUE ? Long.MIN_VALUE : duration.toNanos();
+            };
         }
 
         // 4. default pass-through

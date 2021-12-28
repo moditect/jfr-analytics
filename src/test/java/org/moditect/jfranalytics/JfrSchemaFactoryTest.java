@@ -201,6 +201,33 @@ public class JfrSchemaFactoryTest {
     }
 
     @Test
+    public void canRunSimpleSelectFromGcConfiguration() throws Exception {
+        try (Connection connection = getConnection("gc-configuration.jfr")) {
+            PreparedStatement statement = connection.prepareStatement("""
+                    SELECT *
+                    FROM "jfr"."jdk.GCConfiguration"
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+
+                assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-28T16:13:32.114000000+01:00").toInstant()));
+                assertThat(rs.getString(2)).isEqualTo("G1New");
+                assertThat(rs.getString(3)).isEqualTo("G1Old");
+                assertThat(rs.getInt(4)).isEqualTo(10);
+                assertThat(rs.getInt(5)).isEqualTo(3);
+                assertThat(rs.getBoolean(6)).isTrue();
+                assertThat(rs.getBoolean(7)).isFalse();
+                assertThat(rs.getBoolean(8)).isFalse();
+                assertThat(rs.getLong(9)).isEqualTo(Long.MIN_VALUE);
+                assertThat(rs.getInt(10)).isEqualTo(12);
+
+                assertThat(rs.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
     public void canUseGetClassNameFunction() throws Exception {
         try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
