@@ -39,7 +39,6 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.SchemaVersion;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.Table;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import jdk.jfr.EventType;
@@ -108,6 +107,7 @@ public class JfrSchema implements Schema {
         switch (field.getTypeName()) {
             case "int":
                 type = typeFactory.createJavaType(int.class);
+                break;
             case "long":
                 if ("jdk.jfr.Timestamp".equals(field.getContentType())) {
                     type = typeFactory.createJavaType(Timestamp.class);
@@ -179,9 +179,6 @@ public class JfrSchema implements Schema {
         // 3. further special cases
         else if (field.getAnnotation(Timespan.class) != null) {
             return event -> event.getDuration(field.getName()).toNanos();
-        }
-        else if (type != null && type.getSqlTypeName() == SqlTypeName.BIGINT) {
-            return event -> event.getLong(field.getName());
         }
 
         // 4. default pass-through

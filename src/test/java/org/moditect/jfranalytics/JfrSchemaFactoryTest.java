@@ -85,7 +85,7 @@ public class JfrSchemaFactoryTest {
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("gcId").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("BIGINT").describedAs("type name");
+                assertThat(rs.getString(6)).isEqualTo("INTEGER").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("name").describedAs("column name");
