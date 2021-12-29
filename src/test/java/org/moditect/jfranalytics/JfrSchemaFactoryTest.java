@@ -40,7 +40,7 @@ public class JfrSchemaFactoryTest {
     public void canRetrieveTables() throws Exception {
         try (Connection connection = getConnection("basic.jfr")) {
             DatabaseMetaData md = connection.getMetaData();
-            try (ResultSet rs = md.getTables(null, "jfr", "%", null)) {
+            try (ResultSet rs = md.getTables(null, "%", "%", null)) {
                 Set<String> tableNames = new HashSet<>();
 
                 while (rs.next()) {
@@ -50,7 +50,7 @@ public class JfrSchemaFactoryTest {
                 assertThat(tableNames).contains("jdk.GarbageCollection", "jdk.ThreadSleep", "jfrunit.Sync");
             }
 
-            try (ResultSet rs = md.getColumns(null, "jfr", "jdk.ThreadSleep", null)) {
+            try (ResultSet rs = md.getColumns(null, "JFR", "jdk.ThreadSleep", null)) {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("startTime").describedAs("column name");
                 assertThat(rs.getString(6)).isEqualTo("TIMESTAMP(0)").describedAs("type name");
@@ -77,7 +77,7 @@ public class JfrSchemaFactoryTest {
 
         try (Connection connection = getConnection("data-types.jfr")) {
             DatabaseMetaData md = connection.getMetaData();
-            try (ResultSet rs = md.getTables(null, "jfr", "%", null)) {
+            try (ResultSet rs = md.getTables(null, "%", "%", null)) {
                 Set<String> tableNames = new HashSet<>();
 
                 while (rs.next()) {
@@ -87,7 +87,7 @@ public class JfrSchemaFactoryTest {
                 assertThat(tableNames).contains("test.DataTypes");
             }
 
-            try (ResultSet rs = md.getColumns(null, "jfr", "test.DataTypes", null)) {
+            try (ResultSet rs = md.getColumns(null, "JFR", "test.DataTypes", null)) {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("startTime").describedAs("column name");
                 assertThat(rs.getString(6)).isEqualTo("TIMESTAMP(0)").describedAs("type name");
@@ -149,7 +149,7 @@ public class JfrSchemaFactoryTest {
     public void canSelectDifferentDataTypes() throws Exception {
         try (Connection connection = getConnection("data-types.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
-                    SELECT * FROM "jfr"."test.DataTypes"
+                    SELECT * FROM jfr."test.DataTypes"
                     """);
 
             try (ResultSet rs = statement.executeQuery()) {
@@ -176,7 +176,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "time", "eventThread", TRUNCATE_STACKTRACE("stackTrace", 7)
-                    FROM "jfr"."jdk.ThreadSleep"
+                    FROM jfr."jdk.ThreadSleep"
                     WHERE "time" = 1000000000
                     """);
 
@@ -206,7 +206,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "duration", "gcId", "name", "cause", "sumOfPauses", "longestPause"
-                    FROM "jfr"."jdk.GarbageCollection"
+                    FROM jfr."jdk.GarbageCollection"
                     """);
 
             try (ResultSet rs = statement.executeQuery()) {
@@ -229,7 +229,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "startTime", "loadedClass", "initiatingClassLoader", "definingClassLoader"
-                    FROM "jfr"."jdk.ClassLoad"
+                    FROM jfr."jdk.ClassLoad"
                     ORDER by "startTime"
                     LIMIT 1
                     """);
@@ -268,7 +268,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("gc-configuration.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT *
-                    FROM "jfr"."jdk.GCConfiguration"
+                    FROM jfr."jdk.GCConfiguration"
                     """);
 
             try (ResultSet rs = statement.executeQuery()) {
@@ -295,7 +295,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT CLASS_NAME("loadedClass") as className
-                    FROM "jfr"."jdk.ClassLoad"
+                    FROM jfr."jdk.ClassLoad"
                     ORDER by "startTime"
                     LIMIT 1
                     """);
@@ -313,7 +313,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT count(*), sum("time")
-                    FROM "jfr"."jdk.ThreadSleep"
+                    FROM jfr."jdk.ThreadSleep"
                     """);
 
             try (ResultSet rs = statement.executeQuery()) {
@@ -327,7 +327,7 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("class-loading.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                     SELECT "definingClassLoader", count(*) as loadedClasses
-                    FROM "jfr"."jdk.ClassLoad"
+                    FROM jfr."jdk.ClassLoad"
                     GROUP BY "definingClassLoader"
                     ORDER BY loadedClasses DESC
                     """);
@@ -363,8 +363,8 @@ public class JfrSchemaFactoryTest {
         try (Connection connection = getConnection("object-allocations.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
                       SELECT TRUNCATE_STACKTRACE("stackTrace", 40), SUM("weight")
-                      FROM "jfr"."jdk.ObjectAllocationSample"
-                      WHERE "startTime" > (SELECT "startTime" FROM "jfr"."jfrunit.Reset")
+                      FROM jfr."jdk.ObjectAllocationSample"
+                      WHERE "startTime" > (SELECT "startTime" FROM jfr."jfrunit.Reset")
                       GROUP BY TRUNCATE_STACKTRACE("stackTrace", 40)
                       ORDER BY SUM("weight") DESC
                       LIMIT 10

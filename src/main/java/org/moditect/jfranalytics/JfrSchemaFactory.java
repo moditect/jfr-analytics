@@ -29,10 +29,10 @@ public class JfrSchemaFactory implements SchemaFactory {
     public static final String INLINE_MODEL = """
             inline: {
               version: '1.0',
-              defaultSchema: 'jfr',
+              defaultSchema: 'JFR',
               schemas: [
                 {
-                  name: 'jfr',
+                  name: 'JFR',
                   type: 'custom',
                   factory: 'org.moditect.jfranalytics.JfrSchemaFactory',
                   operand: {
