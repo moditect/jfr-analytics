@@ -4,8 +4,8 @@ An exploration for running analytics on JDK Flight Recorder recordings.
 
 There's two areas of interest:
 
-* Pull-based SQL queries on JFR recording files, using [Apache Calcite](https://calcite.apache.org/)
-* Streaming queries on realtime JFR event streams (implementation tbd., e.g. via Apache Flink or Akka Streams)
+* Pull-based SQL queries on JFR recording files, using [Apache Calcite](https://calcite.apache.org/) (work in progress)
+* Streaming queries on realtime JFR event streams (implementation tbd., e.g. via Apache Flink or Akka Streams; not started yet)
 
 ## Running SQL Queries on JFR Recordings
 
