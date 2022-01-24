@@ -57,10 +57,19 @@ java --class-path "target/lib/*:target/jfr-analytics-1.0.0-SNAPSHOT.jar" sqlline
 Within SQLLine, you can "connect" to a given JFR recording file like so:
 
 ```bash
-!connect jdbc:calcite:schemaFactory=org.moditect.jfranalytics.JfrSchemaFactory;schema.file=src/test/resources/class-loading.jfr dummy dummy
+!connect jdbc:calcite:schemaFactory=org.moditect.jfranalytics.JfrSchemaFactory;schema.file=src/test/resources/object-allocations.jfr dummy dummy
 
 !tables # shows all tables (i.e. JFR event types)
-!columns # shows all columns (i.e. JFR event attributes)
+!columns "jdk.ObjectAllocationSample" # shows all columns (i.e. JFR event attributes)
+
+!outputformat vertical
+
+SELECT TRUNCATE_STACKTRACE("stackTrace", 40), SUM("weight")
+FROM "jdk.ObjectAllocationSample"
+WHERE "startTime" > (SELECT "startTime" FROM "jfrunit.Reset")
+GROUP BY TRUNCATE_STACKTRACE("stackTrace", 40)
+ORDER BY SUM("weight") DESC
+LIMIT 10;
 ```
 
 ### Built-in Functions
