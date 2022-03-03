@@ -28,7 +28,7 @@ properties.put("model", JfrSchemaFactory.INLINE_MODEL.formatted(jfrFile));
 try (Connection connection = DriverManager.getConnection("jdbc:calcite:", properties)) {
     PreparedStatement statement = connection.prepareStatement("""
             SELECT TRUNCATE_STACKTRACE("stackTrace", 40), SUM("weight")
-            FROM "jfr"."jdk.ObjectAllocationSample"
+            FROM "JFR"."jdk.ObjectAllocationSample"
             GROUP BY TRUNCATE_STACKTRACE("stackTrace", 40)
             ORDER BY SUM("weight") DESC
             LIMIT 10
@@ -36,8 +36,8 @@ try (Connection connection = DriverManager.getConnection("jdbc:calcite:", proper
 
     try (ResultSet rs = statement.executeQuery()) {
         while (rs.next()) {
-            System.out.printlne("Trace : " + rs.getString(1));
-            System.out.printlne("Weight: " + rs.getSLong(2));
+            System.out.println("Trace : " + rs.getString(1));
+            System.out.println("Weight: " + rs.getLong(2));
         }
     }
 }
@@ -99,6 +99,16 @@ Run the following command to format the source code and organize the imports as 
 
 ```bash
 mvn process-sources
+```
+
+## Using as a library
+
+The easiest way to consume JFR Analytics as a library is to add it as a local dependency, along with Calcite
+as a transitive dependency. For example, in this Gradle (Kotlin) snippet:
+
+```kotlin
+  implementation(files("lib/jfr-analytics.jar"))
+  implementation("org.apache.calcite:calcite-core:1.29.0")
 ```
 
 ## License
