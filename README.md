@@ -61,8 +61,7 @@ Within SQLLine, you can "connect" to a given JFR recording file like so:
 
 !tables # shows all tables (i.e. JFR event types)
 !columns "jdk.ObjectAllocationSample" # shows all columns (i.e. JFR event attributes)
-
-!outputformat vertical
+!outputformat vertical # vertical output, useful when displaying stack traces
 
 SELECT TRUNCATE_STACKTRACE("stackTrace", 40), SUM("weight")
 FROM "jdk.ObjectAllocationSample"
@@ -80,6 +79,7 @@ There's a set of functions for working with JFR attribute types such as `jdk.jfr
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | VARCHAR CLASS_NAME(RecordedClass)                    | Obtains the fully-qualified class name from the given `jdk.jfr.consumer.RecordedClass`         |
 | VARCHAR TRUNCATE_STACKTRACE(RecordedStackTrace, INT) | Truncates the stacktrace of the given `jdk.jfr.consumer.RecordedStackTrace` to the given depth |
+| BOOL HAS_MATCHING_FRAME(RecordedStackTrace, VARCHAR) | Returns `true` if the given `jdk.jfr.consumer.RecordedStackTrace` contains a frame matching the given regular expression, `false` otherwise |
 
 ## Build
 

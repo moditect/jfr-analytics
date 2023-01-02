@@ -378,6 +378,27 @@ public class JfrSchemaFactoryTest {
         }
     }
 
+    @Test
+    public void canUseHasMatchingFrameFunction() throws Exception {
+        try (Connection connection = getConnection("object-allocations.jfr")) {
+            PreparedStatement statement = connection.prepareStatement("""
+                      SELECT TRUNCATE_STACKTRACE("stackTrace", 10)
+                      FROM jfr."jdk.ObjectAllocationSample"
+                      WHERE "startTime" > (SELECT "startTime" FROM jfr."jfrunit.Reset")
+                        AND HAS_MATCHING_FRAME("stackTrace", '.*java\\.util\\.ArrayList\\.addAll.*')
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                int size = 0;
+                while (rs.next()) {
+                    size++;
+                }
+
+                assertThat(size).isEqualTo(73);
+            }
+        }
+    }
+
     private Connection getConnection(String jfrFileName) throws SQLException {
         Path jfrFile = getTestResource(jfrFileName);
 

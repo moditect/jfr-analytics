@@ -238,13 +238,16 @@ public class JfrSchema implements Schema {
         else if (name.equals("TRUNCATE_STACKTRACE")) {
             return Collections.singleton(TruncateStackTraceFunction.INSTANCE);
         }
+        else if (name.equals("HAS_MATCHING_FRAME")) {
+            return Collections.singleton(HasMatchingFrameFunction.INSTANCE);
+        }
 
         return Collections.emptySet();
     }
 
     @Override
     public Set<String> getFunctionNames() {
-        return Set.of("CLASS_NAME", "TRUNCATE_STACKTRACE");
+        return Set.of("CLASS_NAME", "TRUNCATE_STACKTRACE", "HAS_MATCHING_FRAME");
     }
 
     @Override

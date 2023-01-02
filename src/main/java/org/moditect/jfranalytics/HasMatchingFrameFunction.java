@@ -26,31 +26,30 @@ import jdk.jfr.consumer.RecordedStackTrace;
 /**
  * Truncates a {@link RecordedStackTrace} to the given maximum depth.
  */
-public class TruncateStackTraceFunction {
+public class HasMatchingFrameFunction {
 
-    public static final ScalarFunction INSTANCE = ScalarFunctionImpl.create(TruncateStackTraceFunction.class, "eval");
+    public static final ScalarFunction INSTANCE = ScalarFunctionImpl.create(HasMatchingFrameFunction.class, "eval");
 
-    public String eval(Object recordedStackTrace, int depth) {
+    public boolean eval(Object recordedStackTrace, String pattern) {
         if (recordedStackTrace == null) {
-            return null;
+            return true;
         }
         if (!(recordedStackTrace instanceof RecordedStackTrace)) {
             throw new IllegalArgumentException("Unexpected value type: " + recordedStackTrace);
         }
-        if (depth < 1) {
-            throw new IllegalArgumentException("At least one frame must be retained");
+        if (pattern == null) {
+            throw new IllegalArgumentException("A pattern must be given");
         }
 
         List<RecordedFrame> frames = ((RecordedStackTrace) recordedStackTrace).getFrames();
-        StringBuilder builder = new StringBuilder();
 
-        int i = 0;
-        while (i < depth && i < frames.size()) {
-            builder.append(FrameHelper.asText(frames.get(i)));
-            builder.append(System.lineSeparator());
-            i++;
+        for (RecordedFrame recordedFrame : frames) {
+            String frameAsText = FrameHelper.asText(recordedFrame);
+            if (frameAsText != null && frameAsText.matches(pattern)) {
+                return true;
+            }
         }
 
-        return builder.toString();
+        return false;
     }
 }
