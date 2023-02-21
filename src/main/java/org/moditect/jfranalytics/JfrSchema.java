@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,11 +79,12 @@ public class JfrSchema implements Schema {
                                 continue;
                             }
 
-                            // if (type.getSqlTypeName().toString().equals("ROW")) {
-                            // builder.add(field.getName(), type).nullable(true);
-                            // }
-
-                            builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
+                            if (type.getSqlTypeName().toString().equals("ROW")) {
+                                builder.add(field.getName(), type).nullable(true);
+                            }
+                            else {
+                                builder.add(field.getName(), type.getSqlTypeName()).nullable(true);
+                            }
 
                             converters.add(getConverter(field, type));
                         }
@@ -141,7 +143,10 @@ public class JfrSchema implements Schema {
                 type = typeFactory.createJavaType(String.class);
                 break;
             case "java.lang.Thread":
-                type = typeFactory.createJavaType(String.class);
+                List<RelDataType> types = Arrays.asList(typeFactory.createJavaType(String.class), typeFactory.createJavaType(long.class),
+                        typeFactory.createJavaType(String.class), typeFactory.createJavaType(long.class), typeFactory.createJavaType(String.class));
+                List<String> names = Arrays.asList("osName", "osThreadId", "javaName", "javaThreadId", "group");
+                type = typeFactory.createStructType(types, names);
                 break;
             case "jdk.types.ClassLoader":
                 type = typeFactory.createJavaType(String.class);
@@ -166,8 +171,14 @@ public class JfrSchema implements Schema {
         else if (field.getName().equals("duration")) {
             return event -> event.getDuration().toNanos();
         }
-        else if (field.getName().equals("eventThread")) {
-            return event -> event.getThread().getJavaName();
+        else if (field.getTypeName().equals("java.lang.Thread")) {
+            return event -> new Object[]{
+                    event.getThread().getOSName(),
+                    event.getThread().getOSThreadId(),
+                    event.getThread().getJavaName(),
+                    event.getThread().getJavaThreadId(),
+                    event.getThread().getThreadGroup().getName(),
+            };
         }
         else if (field.getName().equals("stackTrace")) {
             return event -> event.getStackTrace();

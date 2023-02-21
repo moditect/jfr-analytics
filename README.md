@@ -81,6 +81,14 @@ There's a set of functions for working with JFR attribute types such as `jdk.jfr
 | VARCHAR TRUNCATE_STACKTRACE(RecordedStackTrace, INT) | Truncates the stacktrace of the given `jdk.jfr.consumer.RecordedStackTrace` to the given depth |
 | BOOL HAS_MATCHING_FRAME(RecordedStackTrace, VARCHAR) | Returns `true` if the given `jdk.jfr.consumer.RecordedStackTrace` contains a frame matching the given regular expression, `false` otherwise |
 
+## Built-in Types
+
+The following `struct` types are provided by JFR Analtics:
+
+| Function                                             | Attributes                                                                                     |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `RecordedThread`                                     | `osName`, `osThreadId`, `javaName`, `javaThreadId`, `group`                                    |
+
 ## Build
 
 Run the following command to build this project:

@@ -61,7 +61,7 @@ public class JfrSchemaFactoryTest {
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("eventThread").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+                assertThat(rs.getString(6)).startsWith("RecordType").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("stackTrace").describedAs("column name");
@@ -98,7 +98,7 @@ public class JfrSchemaFactoryTest {
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("eventThread").describedAs("column name");
-                assertThat(rs.getString(6)).isEqualTo("VARCHAR").describedAs("type name");
+                assertThat(rs.getString(6)).startsWith("RecordType").describedAs("type name");
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(4)).isEqualTo("stackTrace").describedAs("column name");
@@ -175,7 +175,7 @@ public class JfrSchemaFactoryTest {
     public void canRunSimpleSelectFromThreadSleep() throws Exception {
         try (Connection connection = getConnection("basic.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
-                    SELECT "startTime", "time", "eventThread", TRUNCATE_STACKTRACE("stackTrace", 7)
+                    SELECT "startTime", "time", ("eventThread")."javaName", TRUNCATE_STACKTRACE("stackTrace", 7)
                     FROM jfr."jdk.ThreadSleep"
                     WHERE "time" = 1000000000
                     """);
@@ -395,6 +395,46 @@ public class JfrSchemaFactoryTest {
                 }
 
                 assertThat(size).isEqualTo(73);
+            }
+        }
+    }
+
+    @Test
+    public void canJoinThreadStartAndStop() throws Exception {
+        try (Connection connection = getConnection("thread-start-stop.jfr")) {
+            PreparedStatement statement = connection.prepareStatement("""
+                      SELECT ts."thread"."javaName", ts."thread"."javaThreadId", te."thread"."javaName", te."thread"."javaThreadId"
+                      FROM jfr."jdk.ThreadStart" ts
+                      LEFT JOIN jfr."jdk.ThreadEnd" te ON ts."thread"."javaThreadId" = te."thread"."javaThreadId"
+                      ORDER BY ts."thread"."javaThreadId"
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("pool-1-thread-1");
+                assertThat(rs.getLong(2)).isEqualTo(21L);
+                assertThat(rs.getString(3)).isEqualTo("pool-1-thread-1");
+                assertThat(rs.getLong(4)).isEqualTo(21L);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("pool-1-thread-2");
+                assertThat(rs.getLong(2)).isEqualTo(22L);
+                assertThat(rs.getString(3)).isEqualTo("pool-1-thread-2");
+                assertThat(rs.getLong(4)).isEqualTo(22L);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("Attach Listener");
+                assertThat(rs.getLong(2)).isEqualTo(23L);
+                assertThat(rs.getString(3)).isNull();
+                assertThat(rs.getObject(4)).isNull();
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("RMI TCP Accept-0");
+                assertThat(rs.getLong(2)).isEqualTo(24L);
+                assertThat(rs.getString(3)).isNull();
+                assertThat(rs.getObject(4)).isNull();
+
+                assertThat(rs.next()).isFalse();
             }
         }
     }
