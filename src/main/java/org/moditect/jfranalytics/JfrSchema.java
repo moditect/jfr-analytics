@@ -46,8 +46,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import jdk.jfr.EventType;
 import jdk.jfr.Timespan;
 import jdk.jfr.ValueDescriptor;
+import jdk.jfr.consumer.*;
 import jdk.jfr.consumer.EventStream;
-import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedClassLoader;
 import jdk.jfr.consumer.RecordedStackTrace;
 
@@ -171,15 +171,6 @@ public class JfrSchema implements Schema {
         else if (field.getName().equals("duration")) {
             return event -> event.getDuration().toNanos();
         }
-        else if (field.getTypeName().equals("java.lang.Thread")) {
-            return event -> new Object[]{
-                    event.getThread().getOSName(),
-                    event.getThread().getOSThreadId(),
-                    event.getThread().getJavaName(),
-                    event.getThread().getJavaThreadId(),
-                    event.getThread().getThreadGroup().getName(),
-            };
-        }
         else if (field.getName().equals("stackTrace")) {
             return event -> event.getStackTrace();
         }
@@ -204,7 +195,18 @@ public class JfrSchema implements Schema {
                 }
             };
         }
-
+        else if (field.getTypeName().equals("java.lang.Thread")) {
+            return event -> {
+                RecordedThread recordedThread = (RecordedThread) event.getValue(field.getName());
+                return new Object[]{
+                        recordedThread.getOSName(),
+                        recordedThread.getOSThreadId(),
+                        recordedThread.getJavaName(),
+                        recordedThread.getJavaThreadId(),
+                        recordedThread.getThreadGroup().getName(),
+                };
+            };
+        }
         // 3. further special cases
         else if (field.getAnnotation(Timespan.class) != null) {
             return event -> {
@@ -214,7 +216,6 @@ public class JfrSchema implements Schema {
                 return duration.getSeconds() == Long.MIN_VALUE ? Long.MIN_VALUE : duration.toNanos();
             };
         }
-
         // 4. default pass-through
         else {
             return event -> event.getValue(field.getName());

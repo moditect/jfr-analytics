@@ -403,7 +403,7 @@ public class JfrSchemaFactoryTest {
     public void canJoinThreadStartAndStop() throws Exception {
         try (Connection connection = getConnection("thread-start-stop.jfr")) {
             PreparedStatement statement = connection.prepareStatement("""
-                      SELECT ts."thread"."javaName", ts."thread"."javaThreadId", te."thread"."javaName", te."thread"."javaThreadId"
+                      SELECT ts."parentThread"."javaName", ts."thread"."javaName", ts."thread"."javaThreadId", te."thread"."javaName", te."thread"."javaThreadId"
                       FROM jfr."jdk.ThreadStart" ts
                       LEFT JOIN jfr."jdk.ThreadEnd" te ON ts."thread"."javaThreadId" = te."thread"."javaThreadId"
                       ORDER BY ts."thread"."javaThreadId"
@@ -411,28 +411,32 @@ public class JfrSchemaFactoryTest {
 
             try (ResultSet rs = statement.executeQuery()) {
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(1)).isEqualTo("pool-1-thread-1");
-                assertThat(rs.getLong(2)).isEqualTo(21L);
-                assertThat(rs.getString(3)).isEqualTo("pool-1-thread-1");
-                assertThat(rs.getLong(4)).isEqualTo(21L);
+                assertThat(rs.getString(1)).isEqualTo("main");
+                assertThat(rs.getString(2)).isEqualTo("pool-1-thread-1");
+                assertThat(rs.getLong(3)).isEqualTo(21L);
+                assertThat(rs.getString(4)).isEqualTo("pool-1-thread-1");
+                assertThat(rs.getLong(5)).isEqualTo(21L);
 
                 assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(1)).isEqualTo("pool-1-thread-2");
-                assertThat(rs.getLong(2)).isEqualTo(22L);
-                assertThat(rs.getString(3)).isEqualTo("pool-1-thread-2");
-                assertThat(rs.getLong(4)).isEqualTo(22L);
+                assertThat(rs.getString(1)).isEqualTo("main");
+                assertThat(rs.getString(2)).isEqualTo("pool-1-thread-2");
+                assertThat(rs.getLong(3)).isEqualTo(22L);
+                assertThat(rs.getString(4)).isEqualTo("pool-1-thread-2");
+                assertThat(rs.getLong(5)).isEqualTo(22L);
+
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("Signal Dispatcher");
+                assertThat(rs.getString(2)).isEqualTo("Attach Listener");
+                assertThat(rs.getLong(3)).isEqualTo(23L);
+                assertThat(rs.getString(4)).isNull();
+                assertThat(rs.getObject(5)).isNull();
 
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString(1)).isEqualTo("Attach Listener");
-                assertThat(rs.getLong(2)).isEqualTo(23L);
-                assertThat(rs.getString(3)).isNull();
-                assertThat(rs.getObject(4)).isNull();
-
-                assertThat(rs.next()).isTrue();
-                assertThat(rs.getString(1)).isEqualTo("RMI TCP Accept-0");
-                assertThat(rs.getLong(2)).isEqualTo(24L);
-                assertThat(rs.getString(3)).isNull();
-                assertThat(rs.getObject(4)).isNull();
+                assertThat(rs.getString(2)).isEqualTo("RMI TCP Accept-0");
+                assertThat(rs.getLong(3)).isEqualTo(24L);
+                assertThat(rs.getString(4)).isNull();
+                assertThat(rs.getObject(5)).isNull();
 
                 assertThat(rs.next()).isFalse();
             }
