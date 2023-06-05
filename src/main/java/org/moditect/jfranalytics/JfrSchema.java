@@ -203,7 +203,7 @@ public class JfrSchema implements Schema {
                         recordedThread.getOSThreadId(),
                         recordedThread.getJavaName(),
                         recordedThread.getJavaThreadId(),
-                        recordedThread.getThreadGroup().getName(),
+                        recordedThread.getThreadGroup() != null ? recordedThread.getThreadGroup().getName() : null,
                 };
             };
         }

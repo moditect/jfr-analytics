@@ -443,6 +443,21 @@ public class JfrSchemaFactoryTest {
         }
     }
 
+    @Test
+    public void canReadAsyncProfilerWallProfile() throws Exception {
+        try (Connection connection = getConnection("async-profiler-wall.jfr")) {
+            PreparedStatement statement = connection.prepareStatement("""
+                      SELECT COUNT(*)
+                      FROM jfr."jdk.ExecutionSample"
+                    """);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                rs.next();
+                assertThat(rs.getInt(1)).isEqualTo(428);
+            }
+        }
+    }
+
     private Connection getConnection(String jfrFileName) throws SQLException {
         Path jfrFile = getTestResource(jfrFileName);
 
