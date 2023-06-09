@@ -187,7 +187,7 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.getLong(2)).isEqualTo(1_000_000_000L);
                 assertThat(rs.getString(3)).isEqualTo("main");
 
-                assertThat(rs.getString(4)).isEqualTo("""
+                assertThat(rs.getString(4)).isEqualTo(fixNewlines("""
                         java.lang.Thread.sleep(long)
                         org.moditect.jfrunit.demos.todo.HelloJfrUnitTest.basicTest():24
                         jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Method, Object, Object[])
@@ -195,7 +195,7 @@ public class JfrSchemaFactoryTest {
                         jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(Object, Object[]):43
                         java.lang.reflect.Method.invoke(Object, Object[]):568
                         org.junit.platform.commons.util.ReflectionUtils.invokeMethod(Method, Object, Object[]):688
-                        """);
+                        """));
                 assertThat(rs.next()).isFalse();
             }
         }
@@ -238,7 +238,7 @@ public class JfrSchemaFactoryTest {
                 assertThat(rs.next()).isTrue();
 
                 assertThat(rs.getTimestamp(1)).isEqualTo(Timestamp.from(ZonedDateTime.parse("2021-12-26T17:32:45.428000000+01:00").toInstant()));
-                assertThat(rs.getString(2)).isEqualTo("""
+                assertThat(rs.getString(2)).isEqualTo(fixNewlines("""
                         {
                           classLoader = null
                           name = "java/lang/Throwable"
@@ -255,12 +255,16 @@ public class JfrSchemaFactoryTest {
                           modifiers = 33
                           hidden = false
                         }
-                        """);
+                        """));
                 assertThat(rs.getString(3)).isEqualTo("platform");
                 assertThat(rs.getString(4)).isEqualTo("bootstrap");
                 assertThat(rs.next()).isFalse();
             }
         }
+    }
+
+    static String fixNewlines(String s) {
+        return s.replace("\n", String.format("%n"));
     }
 
     @Test
